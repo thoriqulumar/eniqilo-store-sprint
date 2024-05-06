@@ -7,7 +7,7 @@ services:
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_DB: cat_social
+      POSTGRES_DB: eniqilo_store
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
     volumes:
