@@ -1,0 +1,31 @@
+package server
+
+import (
+	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+)
+
+type Server struct {
+	db        *sqlx.DB
+	app       *echo.Echo
+	validator *validator.Validate
+}
+
+func NewServer(db *sqlx.DB) *Server {
+	app := echo.New()
+	validate := validator.New()
+
+	app.Use(middleware.Recover())
+
+	return &Server{
+		db:        db,
+		app:       app,
+		validator: validate,
+	}
+}
+
+func (s *Server) Run() error {
+	return s.app.Start(":8080")
+}
