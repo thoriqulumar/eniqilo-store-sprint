@@ -28,7 +28,7 @@ type StaffServiceResponse struct {
 type RegisterStaffResponse struct {
 	UserId      string `json:"userId"`
 	Name        string `json:"name"`
-	PhoneNumber string `json:"phone_number"`
+	PhoneNumber string `json:"phoneNumber"`
 	AccessToken string `json:"accessToken"`
 }
 
