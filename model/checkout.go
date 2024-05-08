@@ -18,3 +18,29 @@ type CustomerResponse struct {
 	Message string   `json:"message"`
 	Data    Customer `json:"data"`
 }
+
+type ProductDetail struct {
+	ProductId string `json:"productId"`
+	Quantity  int    `json:"quantity"`
+}
+
+type OrderRequest struct {
+	CustomerId     string          `json:"customerId"`
+	ProductDetails []ProductDetail `json:"productDetails"`
+	Paid           int             `json:"paid"`
+	Change         int             `json:"change"`
+}
+
+type Product struct {
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	SKU         string    `json:"sku"`
+	Category    string    `json:"category"`
+	Stock       int       `json:"stock"`
+	Price       int       `json:"price"`
+	ImageURL    string    `json:"imageUrl"`
+	Notes       string    `json:"notes"`
+	IsAvailable bool      `json:"isAvailable"`
+	Location    string    `json:"location"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
