@@ -1,5 +1,5 @@
 CREATE TABLE "staff" (
-  "userId" integer PRIMARY KEY,
+  "userId" uuid PRIMARY KEY,
   "name" varchar,
   "phoneNumber" varchar,
   "password" varchar,

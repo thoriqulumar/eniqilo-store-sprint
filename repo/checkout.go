@@ -24,7 +24,8 @@ func NewCheckoutRepo(db *sqlx.DB) CheckoutRepo {
 
 var (
 	createCustomerQuery = `INSERT INTO "customer" ("userId", "phoneNumber", "name", "createdAt") 
-	VALUES ($1, $2, $3, NOW())`
+	VALUES ($1, $2, $3, NOW())
+	RETURNING *;`
 )
 
 func (r *checkoutRepo) CreateCustomer(ctx context.Context, data model.CustomerRequest) (customer model.Customer, err error) {

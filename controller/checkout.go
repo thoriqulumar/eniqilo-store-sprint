@@ -9,12 +9,12 @@ import (
 )
 
 type CheckoutController struct {
-	service      service.CheckoutService
+	service service.CheckoutService
 }
 
 func NewCheckoutController(service service.CheckoutService) *CheckoutController {
 	return &CheckoutController{
-		service:      service,
+		service: service,
 	}
 }
 
