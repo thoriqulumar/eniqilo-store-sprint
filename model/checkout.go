@@ -13,3 +13,8 @@ type CustomerRequest struct {
 	PhoneNumber string `json:"phoneNumber"`
 	Name        string `json:"name"`
 }
+
+type CustomerResponse struct {
+	Message string   `json:"message"`
+	Data    Customer `json:"data"`
+}

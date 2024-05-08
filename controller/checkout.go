@@ -30,5 +30,8 @@ func (c *CheckoutController) PostCustomer(ctx echo.Context) error {
 		return err
 	}
 
-	return ctx.JSON(http.StatusCreated, newCustomer)
+	return ctx.JSON(http.StatusCreated, model.CustomerResponse{
+		Message: "Customer registered successfully",
+		Data:    newCustomer,
+	})
 }
