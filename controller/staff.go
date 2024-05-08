@@ -25,11 +25,13 @@ func NewStaffContoller(svc service.StaffService, validate *validator.Validate) *
 func (c *StaffController) Register(ctx echo.Context) error {
 	var newStaff model.RegisterStaffRequest
 	if err := ctx.Bind(&newStaff); err != nil {
-		return customErr.NewBadRequestError(err.Error())
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
 	if err := c.validate.Struct(&newStaff); err != nil {
-		return customErr.NewBadRequestError(err.Error())
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
 	serviceRes, err := c.svc.Register(newStaff)

@@ -5,16 +5,16 @@ import "time"
 type Staff struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
-	PhoneNumber string    `json:"phone_number"`
+	PhoneNumber string    `json:"phoneNumber"`
 	Password    string    `json:"-"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type RegisterStaffRequest struct {
-	PhoneNumber string `json:"phone_number" validate:"required, phone_number"`
-	Name        string `json:"name" validate:"required, min=5,max=50"`
-	Password    string `json:"password" validate:"required, min=5, max=15"`
+	PhoneNumber string `json:"phoneNumber" validate:"required,phone_number"`
+	Name        string `json:"name" validate:"required,min=5,max=50"`
+	Password    string `json:"password" validate:"required,min=5,max=15"`
 }
 
 type StaffServiceResponse struct {

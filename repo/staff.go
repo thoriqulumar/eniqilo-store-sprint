@@ -22,7 +22,7 @@ func NewStaffRepo(db *sqlx.DB) StaffRepo {
 func (r *staffRepo) GetStaff(phoneNumber string) (*model.Staff, error) {
 	var staff model.Staff
 
-	query := "SELECT * FROM staff WHERE phone_number = $1"
+	query := `SELECT * FROM staff WHERE "phoneNumber" = $1`
 
 	err := r.db.Get(&staff, query, phoneNumber)
 	if err != nil {
