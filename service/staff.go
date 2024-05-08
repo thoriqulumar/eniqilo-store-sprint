@@ -6,10 +6,12 @@ import (
 	"eniqilo-store/pkg/crypto"
 	"eniqilo-store/pkg/customErr"
 	"eniqilo-store/repo"
+
+	"github.com/google/uuid"
 )
 
 type StaffService interface {
-	Register(newStaff model.RegisterStaffRequest) (model.StaffServiceResponse, error)
+	Register(newStaff model.Staff) (model.StaffServiceResponse, error)
 }
 
 type staffSvc struct {
@@ -22,7 +24,7 @@ func NewStaffService(r repo.StaffRepo) StaffService {
 	}
 }
 
-func (s *staffSvc) Register(newStaff model.RegisterStaffRequest) (model.StaffServiceResponse, error) {
+func (s *staffSvc) Register(newStaff model.Staff) (model.StaffServiceResponse, error) {
 	existingData, err := s.repo.GetStaff(newStaff.PhoneNumber)
 
 	if err != nil && err != sql.ErrNoRows {
@@ -38,7 +40,10 @@ func (s *staffSvc) Register(newStaff model.RegisterStaffRequest) (model.StaffSer
 		return model.StaffServiceResponse{}, err
 	}
 
-	id, err := s.repo.CreateStaff(&newStaff, hashedPassword)
+	id := uuid.New()
+	newStaff.UserId = id
+
+	err = s.repo.CreateStaff(newStaff, hashedPassword)
 	if err != nil {
 		return model.StaffServiceResponse{}, err
 	}
@@ -49,7 +54,7 @@ func (s *staffSvc) Register(newStaff model.RegisterStaffRequest) (model.StaffSer
 	}
 
 	serviceResponse := model.StaffServiceResponse{
-		ID:          id,
+		ID:          id.String(),
 		AccessToken: token,
 	}
 

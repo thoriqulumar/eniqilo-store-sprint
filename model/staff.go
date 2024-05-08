@@ -1,14 +1,17 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Staff struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	PhoneNumber string    `json:"phoneNumber"`
-	Password    string    `json:"-"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	UserId      uuid.UUID `json:"userId" db:"userId"`
+	Name        string    `json:"name" db:"name"`
+	PhoneNumber string    `json:"phoneNumber" db:"phoneNumber"`
+	Password    string    `json:"-" db:"password"`
+	CreatedAt   time.Time `json:"createdAt" db:"createdAt"`
 }
 
 type RegisterStaffRequest struct {

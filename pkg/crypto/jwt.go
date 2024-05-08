@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
-func GenerateToken(id, phoneNumber, name string) (string, error) {
+func GenerateToken(id uuid.UUID, phoneNumber, name string) (string, error) {
 	secret := config.GetString("JWT_SECRET")
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, model.JWTClaims{
-		Id:          id,
+		Id:          id.String(),
 		PhoneNumber: phoneNumber,
 		Name:        name,
 		RegisteredClaims: jwt.RegisteredClaims{

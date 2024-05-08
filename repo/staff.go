@@ -8,7 +8,7 @@ import (
 
 type StaffRepo interface {
 	GetStaff(phoneNumber string) (*model.Staff, error)
-	CreateStaff(newStaff *model.RegisterStaffRequest, hashPassword string) (string, error)
+	CreateStaff(newStaff model.Staff, hashPassword string) error
 }
 
 type staffRepo struct {
@@ -22,7 +22,7 @@ func NewStaffRepo(db *sqlx.DB) StaffRepo {
 func (r *staffRepo) GetStaff(phoneNumber string) (*model.Staff, error) {
 	var staff model.Staff
 
-	query := `SELECT * FROM staff WHERE "phoneNumber" = $1`
+	query := `SELECT * FROM staff WHERE "phoneNumber" = $1;`
 
 	err := r.db.Get(&staff, query, phoneNumber)
 	if err != nil {
@@ -32,16 +32,16 @@ func (r *staffRepo) GetStaff(phoneNumber string) (*model.Staff, error) {
 	return &staff, nil
 }
 
-func (r *staffRepo) CreateStaff(newStaff *model.RegisterStaffRequest, hashPassword string) (string, error) {
+func (r *staffRepo) CreateStaff(newStaff model.Staff, hashPassword string) error {
 	var userId string
 
-	query := `INSERT INTO staff (name, "phoneNumber", password) VALUES ($1, $2, $3) RETURNING userId`
+	query := `INSERT INTO staff ("userId", name, "phoneNumber", password) VALUES ($1, $2, $3, $4) RETURNING "userId"`
 
-	row := r.db.QueryRowx(query, newStaff.Name, newStaff.PhoneNumber, hashPassword)
+	row := r.db.QueryRowx(query, newStaff.UserId, newStaff.Name, newStaff.PhoneNumber, hashPassword)
 
 	if err := row.Scan(&userId); err != nil {
-		return "", nil
+		return err
 	}
 
-	return userId, nil
+	return nil
 }
