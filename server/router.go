@@ -15,14 +15,21 @@ func (s *Server) RegisterRoute() {
 
 	registerHealthRoute(mainRoute, s.db)
 	registerStaffRoute(mainRoute, s.db, s.validator)
+	registerCustomerRoute(mainRoute, s.db)
 }
 
 func registerHealthRoute(e *echo.Group, db *sqlx.DB) {
 	ctr := controller.NewController(service.NewService(repo.NewRepo(db)))
 
 	e.GET("/health", ctr.HealthCheck)
+
+}
+
+func registerCustomerRoute(e *echo.Group, db *sqlx.DB) {
+	ctr := controller.NewCheckoutController(service.NewCheckoutService(repo.NewCheckoutRepo(db)))
+	e.POST("/customer/register", ctr.PostCustomer)
 }
 
 func registerStaffRoute(e *echo.Group, db *sqlx.DB, validate *validator.Validate) {
-	controller.NewStaffContoller(service.NewStaffService(repo.NewStaffRepo(db)), validate)
+	ctr := controller.NewStaffContoller(service.NewStaffService(repo.NewStaffRepo(db)), validate)
 }
