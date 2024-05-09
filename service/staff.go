@@ -23,6 +23,7 @@ type staffSvc struct {
 
 func NewStaffService(cfg *config.Config, r repo.StaffRepo) StaffService {
 	return &staffSvc{
+		cfg:  cfg,
 		repo: r,
 	}
 }
