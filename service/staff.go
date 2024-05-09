@@ -11,7 +11,8 @@ import (
 )
 
 type StaffService interface {
-	Register(newStaff model.Staff) (model.StaffServiceResponse, error)
+	Register(newStaff model.Staff) (model.StaffWithToken, error)
+	Login(loginReq model.LoginStaffRequest) (model.StaffWithToken, error)
 }
 
 type staffSvc struct {
@@ -24,20 +25,20 @@ func NewStaffService(r repo.StaffRepo) StaffService {
 	}
 }
 
-func (s *staffSvc) Register(newStaff model.Staff) (model.StaffServiceResponse, error) {
+func (s *staffSvc) Register(newStaff model.Staff) (model.StaffWithToken, error) {
 	existingData, err := s.repo.GetStaff(newStaff.PhoneNumber)
 
 	if err != nil && err != sql.ErrNoRows {
-		return model.StaffServiceResponse{}, err
+		return model.StaffWithToken{}, customErr.NewInternalServerError("Internal server error")
 	}
 
 	if existingData != nil {
-		return model.StaffServiceResponse{}, customErr.NewConflictError("User already exist")
+		return model.StaffWithToken{}, customErr.NewConflictError("User already exist")
 	}
 
 	hashedPassword, err := crypto.GenerateHashedPassword(newStaff.Password)
 	if err != nil {
-		return model.StaffServiceResponse{}, err
+		return model.StaffWithToken{}, err
 	}
 
 	id := uuid.New()
@@ -45,18 +46,46 @@ func (s *staffSvc) Register(newStaff model.Staff) (model.StaffServiceResponse, e
 
 	err = s.repo.CreateStaff(newStaff, hashedPassword)
 	if err != nil {
-		return model.StaffServiceResponse{}, err
+		return model.StaffWithToken{}, err
 	}
 
 	token, err := crypto.GenerateToken(id, newStaff.PhoneNumber, newStaff.Name)
 	if err != nil {
-		return model.StaffServiceResponse{}, err
+		return model.StaffWithToken{}, err
 	}
 
-	serviceResponse := model.StaffServiceResponse{
-		ID:          id.String(),
+	serviceResponse := model.
+		StaffWithToken{
+		UserId:      id,
 		AccessToken: token,
 	}
 
 	return serviceResponse, err
+}
+
+func (s *staffSvc) Login(loginReq model.LoginStaffRequest) (model.StaffWithToken, error) {
+	user, err := s.repo.GetStaff(loginReq.PhoneNumber)
+
+	if err != nil && err != sql.ErrNoRows {
+		return model.StaffWithToken{}, customErr.NewInternalServerError("Internal server error")
+	}
+
+	err = crypto.VerifyPassword(loginReq.Password, user.Password)
+	if err != nil {
+		return model.StaffWithToken{}, customErr.NewBadRequestError("Invalid phone or password")
+	}
+
+	token, err := crypto.GenerateToken(user.UserId, user.PhoneNumber, user.Name)
+	if err != nil {
+		return model.StaffWithToken{}, customErr.NewBadRequestError(err.Error())
+	}
+
+	serviceResponse := model.StaffWithToken{
+		UserId:      user.UserId,
+		Name:        user.Name,
+		PhoneNumber: user.PhoneNumber,
+		AccessToken: token,
+	}
+
+	return serviceResponse, nil
 }

@@ -33,4 +33,5 @@ func registerCustomerRoute(e *echo.Group, db *sqlx.DB) {
 func registerStaffRoute(e *echo.Group, db *sqlx.DB, validate *validator.Validate) {
 	ctr := controller.NewStaffContoller(service.NewStaffService(repo.NewStaffRepo(db)), validate)
 	e.POST("/staff/register", ctr.Register)
+	e.POST("/staff/login ", ctr.Login)
 }
