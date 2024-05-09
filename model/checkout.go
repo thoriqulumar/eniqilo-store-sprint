@@ -19,6 +19,11 @@ type CustomerResponse struct {
 	Data    Customer `json:"data"`
 }
 
+type ErrorMessageOrder struct {
+	Message    string   `json:"message"`
+	StatusCode int `json:"status"`
+}
+
 type ProductDetail struct {
 	ProductId string `json:"productId"`
 	Quantity  int    `json:"quantity"`

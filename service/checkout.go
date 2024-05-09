@@ -28,10 +28,14 @@ func NewCheckoutService(r repo.CheckoutRepo) CheckoutService {
 }
 
 func (s *checkoutService) CreateNewCustomer(ctx context.Context, data model.CustomerRequest) (customer model.Customer, err error) {
+	_, err = s.repo.GetCustomerByNumber(ctx, data.PhoneNumber)
+	if !errors.Is(err, sql.ErrNoRows) {
+		return model.Customer{}, cerr.New(http.StatusNotFound, "phoneNumber already exists")
+	}
 
 	dataCustomer, err := s.repo.CreateCustomer(ctx, data)
 	if err != nil {
-		return
+		return model.Customer{}, cerr.New(http.StatusInternalServerError, "Internal Server Error")
 	}
 
 	return dataCustomer, nil
