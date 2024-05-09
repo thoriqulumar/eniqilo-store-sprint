@@ -36,13 +36,14 @@ func (c *StaffController) Register(ctx echo.Context) error {
 
 	newStaff := model.Staff{
 		Name:        newStaffReq.Name,
-		PhoneNumber: newStaffReq.Name,
+		PhoneNumber: newStaffReq.PhoneNumber,
 		Password:    newStaffReq.Password,
 	}
 
 	serviceRes, err := c.svc.Register(newStaff)
 	if err != nil {
-		return err
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
 	return ctx.JSON(http.StatusCreated, model.RegisterStaffResponse{
@@ -67,7 +68,8 @@ func (c *StaffController) Login(ctx echo.Context) error {
 
 	serviceRes, err := c.svc.Login(loginReq)
 	if err != nil {
-		return err
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
 	return ctx.JSON(http.StatusOK, model.RegisterStaffResponse{

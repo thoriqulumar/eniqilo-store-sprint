@@ -11,7 +11,7 @@ type Staff struct {
 	Name        string    `json:"name" db:"name"`
 	PhoneNumber string    `json:"phoneNumber" db:"phoneNumber"`
 	Password    string    `json:"-" db:"password"`
-	CreatedAt   time.Time `json:"createdAt" db:"createdAt"`
+	CreatedAt   string    `json:"createdAt" db:"createdAt"`
 }
 
 type RegisterStaffRequest struct {
