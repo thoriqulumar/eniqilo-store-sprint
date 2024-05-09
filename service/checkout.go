@@ -16,6 +16,8 @@ type CheckoutService interface {
 	ValidateUser(ctx context.Context, userId string) (customer model.Customer, err error) 
 	ValidateProduct(ctx context.Context, products []model.ProductDetail) ( total float32, err error)
 	CheckoutProduct(ctx context.Context, products []model.ProductDetail) (err error)
+	GetAllCustomer(ctx context.Context, name, phoneNumber string, limit, offset int) (listCustomer []model.CustomerResponseData,err error)
+	
 }
 
 type checkoutService struct {
@@ -121,4 +123,13 @@ func (s *checkoutService) CheckoutProduct(ctx context.Context, products []model.
 	// }
 
 	return nil
+}
+
+func (s *checkoutService) GetAllCustomer(ctx context.Context, name, phoneNumber string, limit, offset int) (listCustomer []model.CustomerResponseData,err error){
+	dataCustomer, err := s.repo.GetAllCustomer(ctx, name, phoneNumber, limit, offset)
+	if err != nil {
+		return []model.CustomerResponseData{}, cerr.New(http.StatusInternalServerError, "Internal Server Error")
+	}
+
+	return dataCustomer, nil
 }

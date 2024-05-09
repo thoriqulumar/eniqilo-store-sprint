@@ -28,6 +28,8 @@ func registerHealthRoute(e *echo.Group, db *sqlx.DB) {
 func registerCustomerRoute(e *echo.Group, db *sqlx.DB) {
 	ctr := controller.NewCheckoutController(service.NewCheckoutService(repo.NewCheckoutRepo(db)))
 	e.POST("/customer/register", ctr.PostCustomer)
+	e.POST("/product/checkout", ctr.PostCheckout)
+	e.GET("/customer", ctr.GetCustomer)
 }
 
 func registerStaffRoute(e *echo.Group, db *sqlx.DB, validate *validator.Validate) {
