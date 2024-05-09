@@ -3,8 +3,7 @@ package main
 import (
 	"eniqilo-store/config"
 	"eniqilo-store/database"
-	pkgLog "eniqilo-store/log"
-	"eniqilo-store/pkg/version"
+	logger "eniqilo-store/pkg/log"
 	"eniqilo-store/server"
 	"log"
 
@@ -15,10 +14,10 @@ import (
 func main() {
 	config.LoadConfig(".env")
 
-	logger, err := pkgLog.New(
+	logger, err := logger.NewLogger(
 		zapcore.DebugLevel,
-		version.ServiceID,
-		version.Version,
+		"eniqilo_store",
+		"1",
 	)
 	if err != nil {
 		panic(err)

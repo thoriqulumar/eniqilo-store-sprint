@@ -6,7 +6,7 @@ import (
 )
 
 // New creates a new zap logger with the given log level, service name and environment.
-func New(level zapcore.Level, serviceID, version string) (*zap.Logger, error) {
+func NewLogger(level zapcore.Level, serviceID, version string) (*zap.Logger, error) {
 	config := zap.NewProductionConfig()
 	config.Level = zap.NewAtomicLevelAt(level)
 	config.DisableStacktrace = true
