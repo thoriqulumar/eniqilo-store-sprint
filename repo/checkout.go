@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"eniqilo-store/model"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -16,6 +17,7 @@ type CheckoutRepo interface {
 	GetProductById(ctx context.Context, productId string) (product model.Product, err error)
 	UpdateStockProduct(ctx context.Context, currentStock int, productId string) (err error)
 	GetProductStocks(ctx context.Context, productIDs []string) (map[string]int, error)
+	GetAllCustomer(ctx context.Context, name, phoneNumber string, limit, offset int) (customers []model.CustomerResponseData, err error)
 }
 
 type checkoutRepo struct {
@@ -116,4 +118,42 @@ func (r *checkoutRepo) GetProductStocks(ctx context.Context, productIDs []string
     }
 
     return productStocks, nil
+}
+
+var (
+	getAllCustomerQuery = `SELECT "userId", "phoneNumber", "name" FROM customer WHERE 1=1`
+)
+
+func (r *checkoutRepo) GetAllCustomer(ctx context.Context, name, phoneNumber string, limit, offset int) (customers []model.CustomerResponseData, err error) {
+	var listCustomer []model.CustomerResponseData
+	
+	if phoneNumber != "" {
+        getAllCustomerQuery += fmt.Sprintf(` AND "phoneNumber" LIKE '%%%s%%'`, phoneNumber)
+    }
+    if name != "" {
+        getAllCustomerQuery += fmt.Sprintf(` AND LOWER(name) LIKE LOWER('%%%s%%')`, name)
+    }
+    getAllCustomerQuery += fmt.Sprintf(` ORDER BY "createdAt" DESC LIMIT %d OFFSET %d`, limit, offset)
+
+
+    rows, err := r.db.QueryContext(ctx, getAllCustomerQuery)
+    if err != nil {
+        return nil, err
+    }
+
+	defer rows.Close()
+
+    // Iterate over the rows and scan each row into a struct
+    for rows.Next() {
+        var customer model.CustomerResponseData
+        if err := rows.Scan(&customer.UserId, &customer.PhoneNumber, &customer.Name); err != nil {
+            return nil, err
+        }
+        listCustomer = append(listCustomer, customer)
+    }
+    if err := rows.Err(); err != nil {
+        return nil, err
+    }
+
+    return listCustomer, nil
 }

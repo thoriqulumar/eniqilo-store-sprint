@@ -20,8 +20,8 @@ type CustomerResponse struct {
 }
 
 type ErrorMessageOrder struct {
-	Message    string   `json:"message"`
-	StatusCode int `json:"status"`
+	Message    string `json:"message"`
+	StatusCode int    `json:"status"`
 }
 
 type ProductDetail struct {
@@ -48,4 +48,14 @@ type Product struct {
 	IsAvailable bool      `json:"isAvailable"`
 	Location    string    `json:"location"`
 	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type CustomerResponseData struct {
+	UserId      string `json:"userId" db:"userId"`
+	PhoneNumber string `json:"phoneNumber" db:"phoneNumber"`
+	Name        string `json:"name" db:"name"`
+}
+type ResponseCustomerList struct {
+	Message string                 `json:"message"`
+	Data    []CustomerResponseData `json:"data"`
 }
