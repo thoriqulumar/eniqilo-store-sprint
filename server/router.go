@@ -1,6 +1,7 @@
 package server
 
 import (
+	"eniqilo-store/config"
 	"eniqilo-store/controller"
 	"eniqilo-store/repo"
 	"eniqilo-store/service"
@@ -10,11 +11,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (s *Server) RegisterRoute() {
+func (s *Server) RegisterRoute(cfg *config.Config) {
 	mainRoute := s.app.Group("/v1")
 
 	registerHealthRoute(mainRoute, s.db)
-	registerStaffRoute(mainRoute, s.db, s.validator)
+	registerStaffRoute(mainRoute, s.db, cfg, s.validator)
 	registerCustomerRoute(mainRoute, s.db)
 }
 
@@ -32,13 +33,8 @@ func registerCustomerRoute(e *echo.Group, db *sqlx.DB) {
 	e.GET("/customer", ctr.GetCustomer)
 }
 
-func registerStaffRoute(e *echo.Group, db *sqlx.DB, validate *validator.Validate) {
-	ctr := controller.NewStaffContoller(service.NewStaffService(repo.NewStaffRepo(db)), validate)
-	e.POST("/staff/register", ctr.Register)
-}
-
-func registerStaffRoute(e *echo.Group, db *sqlx.DB, validate *validator.Validate) {
-	ctr := controller.NewStaffContoller(service.NewStaffService(repo.NewStaffRepo(db)), validate)
+func registerStaffRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config, validate *validator.Validate) {
+	ctr := controller.NewStaffContoller(service.NewStaffService(cfg, repo.NewStaffRepo(db)), validate)
 
 	e.POST("/staff/login", ctr.Login)
 	e.POST("/staff/register", ctr.Register)

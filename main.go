@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"eniqilo-store/config"
 	"eniqilo-store/database"
 	logger "eniqilo-store/pkg/log"
@@ -12,7 +13,12 @@ import (
 )
 
 func main() {
-	config.LoadConfig(".env")
+	ctx := context.Background()
+
+	cfg, err := config.LoadConfig(ctx)
+	if err != nil {
+		panic(err)
+	}
 
 	logger, err := logger.NewLogger(
 		zapcore.DebugLevel,
@@ -23,7 +29,7 @@ func main() {
 		panic(err)
 	}
 
-	db, err := database.NewDatabase()
+	db, err := database.NewDatabase(cfg)
 	if err != nil {
 		logger.Error("error opening database", zap.Error(err))
 		panic(err)
@@ -32,7 +38,7 @@ func main() {
 	db.SetMaxIdleConns(80)
 
 	s := server.NewServer(db)
-	s.RegisterRoute()
+	s.RegisterRoute(cfg)
 
 	log.Fatal(s.Run())
 }

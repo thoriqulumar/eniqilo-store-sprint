@@ -2,20 +2,16 @@ package crypto
 
 import (
 	"eniqilo-store/config"
-	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-func GenerateHashedPassword(password string) (string, error) {
-	costStr := config.GetString("BCRYPT_SALT")
+var (
+	cfg config.Config
+)
 
-	cost, err := strconv.Atoi(costStr)
-	if err != nil {
-		return "", err
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), cost)
+func GenerateHashedPassword(password string, salt int) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), salt)
 	if err != nil {
 		return "", err
 	}

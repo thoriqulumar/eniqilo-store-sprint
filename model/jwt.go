@@ -8,3 +8,9 @@ type JWTClaims struct {
 	PhoneNumber string `json:"phone_number"`
 	jwt.RegisteredClaims
 }
+
+type JWTPayload struct {
+	Id          string
+	Name        string
+	PhoneNumber string
+}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"eniqilo-store/config"
 	"eniqilo-store/model"
 	"eniqilo-store/pkg/crypto"
 	"eniqilo-store/pkg/customErr"
@@ -16,10 +17,11 @@ type StaffService interface {
 }
 
 type staffSvc struct {
+	cfg  *config.Config
 	repo repo.StaffRepo
 }
 
-func NewStaffService(r repo.StaffRepo) StaffService {
+func NewStaffService(cfg *config.Config, r repo.StaffRepo) StaffService {
 	return &staffSvc{
 		repo: r,
 	}
@@ -36,7 +38,7 @@ func (s *staffSvc) Register(newStaff model.Staff) (model.StaffWithToken, error) 
 		return model.StaffWithToken{}, customErr.NewConflictError("User already exist")
 	}
 
-	hashedPassword, err := crypto.GenerateHashedPassword(newStaff.Password)
+	hashedPassword, err := crypto.GenerateHashedPassword(newStaff.Password, s.cfg.BcryptSalt)
 	if err != nil {
 		return model.StaffWithToken{}, err
 	}
@@ -49,7 +51,7 @@ func (s *staffSvc) Register(newStaff model.Staff) (model.StaffWithToken, error) 
 		return model.StaffWithToken{}, err
 	}
 
-	token, err := crypto.GenerateToken(id, newStaff.PhoneNumber, newStaff.Name)
+	token, err := crypto.GenerateToken(id, newStaff.PhoneNumber, newStaff.Name, s.cfg.JWTSecret)
 	if err != nil {
 		return model.StaffWithToken{}, err
 	}
@@ -75,7 +77,7 @@ func (s *staffSvc) Login(loginReq model.LoginStaffRequest) (model.StaffWithToken
 		return model.StaffWithToken{}, customErr.NewBadRequestError("Invalid phone or password")
 	}
 
-	token, err := crypto.GenerateToken(user.UserId, user.PhoneNumber, user.Name)
+	token, err := crypto.GenerateToken(user.UserId, user.PhoneNumber, user.Name, s.cfg.JWTSecret)
 	if err != nil {
 		return model.StaffWithToken{}, customErr.NewBadRequestError(err.Error())
 	}
