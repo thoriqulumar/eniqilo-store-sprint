@@ -7,6 +7,7 @@ import (
 	"eniqilo-store/repo"
 	cerr "eniqilo-store/utils/error"
 	"errors"
+	"fmt"
 	"net/http"
 )
 
@@ -74,19 +75,50 @@ func (s *checkoutService) ValidateProduct(ctx context.Context, products []model.
 }
 
 func (s *checkoutService) CheckoutProduct(ctx context.Context, products []model.ProductDetail) (err error){
-	for _, product := range products {
-		dataProduct, err := s.repo.GetProductById(ctx, product.ProductId)
-		if err != nil && errors.Is(err, sql.ErrNoRows) {
-			return cerr.New(http.StatusNotFound, "productId is not found")
-		}
+	productIDs := make([]string, 0, len(products))
+    for _, product := range products {
+        if product.ProductId == "" {
+            return cerr.New(http.StatusBadRequest, "productId cannot be empty")
+        }
+        productIDs = append(productIDs, product.ProductId)
+    }
 
-		currentStock := dataProduct.Stock - product.Quantity
-		err = s.repo.UpdateStockProduct(ctx, currentStock, product.ProductId)
-		if err != nil{
-			return cerr.New(http.StatusInternalServerError, "error when update product" + product.ProductId)
-		}
+	productStocks, err := s.repo.GetProductStocks(ctx, productIDs)
+    if err != nil {
+        return cerr.New(http.StatusInternalServerError, "error fetching product stock levels: "+err.Error())
+    }
+
+	updatedStocks := make(map[string]int)
+    for _, product := range products {
+        existingStock, ok := productStocks[product.ProductId]
+        if !ok {
+            // Handle unexpected missing product (shouldn't occur after previous check)
+            return cerr.New(http.StatusInternalServerError, fmt.Sprintf("unexpected error: product %s not found in fetched stocks", product.ProductId))
+        }
+        updatedStocks[product.ProductId] = existingStock - product.Quantity
+    }
+
+	for productId, stock := range updatedStocks {
+		err = s.repo.UpdateStockProduct(ctx, stock, productId)
+        if err != nil {
+            return cerr.New(http.StatusInternalServerError, fmt.Sprintf("error updating stock for product %s: %s", productId, err.Error()))
+        }
+    }
+
+
+	// for _, product := range products {
+	// 	dataProduct, err := s.repo.GetProductById(ctx, product.ProductId)
+	// 	if err != nil && errors.Is(err, sql.ErrNoRows) {
+	// 		return cerr.New(http.StatusNotFound, "productId is not found")
+	// 	}
+
+	// 	currentStock := dataProduct.Stock - product.Quantity
+	// 	err = s.repo.UpdateStockProduct(ctx, currentStock, product.ProductId)
+	// 	if err != nil{
+	// 		return cerr.New(http.StatusInternalServerError, "error when update product" + product.ProductId)
+	// 	}
 		
-	}
+	// }
 
 	return nil
 }
