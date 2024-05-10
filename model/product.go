@@ -16,13 +16,34 @@ const (
 	Beverages   Category = "Beverages"
 )
 
+type GetProductParam struct {
+	ID          *uuid.UUID
+	Limit       *int
+	Offset      *int
+	Name        *string
+	IsAvailable *bool
+	Category    *Category
+	SKU         *string
+	InStock     *bool
+}
+
+type GetProductResponse struct {
+	Message string    `json:"message"`
+	Data    []Product `json:"data"`
+}
+
 type PostProductResponse struct {
 	Message string `json:"message"`
 	Data    Data   `json:"data"`
 }
 
+type UpdateProductResponse struct {
+	Message string  `json:"message"`
+	Data    Product `json:"data"`
+}
+
 // Product represents the product table structure
-type CreatedProduct struct {
+type Product struct {
 	ID          uuid.UUID `json:"id" db:"id"`
 	Name        string    `json:"name" db:"name"`
 	SKU         string    `json:"sku" db:"sku"`

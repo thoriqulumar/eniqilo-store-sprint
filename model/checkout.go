@@ -36,20 +36,6 @@ type OrderRequest struct {
 	Change         int             `json:"change"`
 }
 
-type Product struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	SKU         string    `json:"sku"`
-	Category    string    `json:"category"`
-	Stock       int       `json:"stock"`
-	Price       int       `json:"price"`
-	ImageURL    string    `json:"imageUrl"`
-	Notes       string    `json:"notes"`
-	IsAvailable bool      `json:"isAvailable"`
-	Location    string    `json:"location"`
-	CreatedAt   time.Time `json:"createdAt"`
-}
-
 type CustomerResponseData struct {
 	UserId      string `json:"userId" db:"userId"`
 	PhoneNumber string `json:"phoneNumber" db:"phoneNumber"`
