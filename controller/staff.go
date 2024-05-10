@@ -42,16 +42,25 @@ func (c *StaffController) Register(ctx echo.Context) error {
 
 	serviceRes, err := c.svc.Register(newStaff)
 	if err != nil {
-		resErr := customErr.NewBadRequestError(err.Error())
-		return ctx.JSON(resErr.StatusCode, resErr)
+		switch err.Error() {
+		case "User already exist":
+			return ctx.JSON(http.StatusConflict, err.Error())
+		default:
+			return ctx.JSON(http.StatusInternalServerError, err.Error())
+		}
 	}
 
-	return ctx.JSON(http.StatusCreated, model.RegisterStaffResponse{
-		UserId:      serviceRes.UserId.String(),
-		Name:        newStaff.Name,
-		PhoneNumber: newStaff.PhoneNumber,
-		AccessToken: serviceRes.AccessToken,
-	})
+	registerStaffResponse := model.RegisterStaffResponse{
+		Message: "User registered successfully",
+		Data: model.StaffWithToken{
+			UserId:      serviceRes.UserId,
+			Name:        newStaff.Name,
+			PhoneNumber: newStaff.PhoneNumber,
+			AccessToken: serviceRes.AccessToken,
+		},
+	}
+
+	return ctx.JSON(http.StatusCreated, registerStaffResponse)
 }
 
 func (c *StaffController) Login(ctx echo.Context) error {
@@ -72,17 +81,22 @@ func (c *StaffController) Login(ctx echo.Context) error {
 		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
-	return ctx.JSON(http.StatusOK, model.RegisterStaffResponse{
-		UserId:      serviceRes.UserId.String(),
-		Name:        serviceRes.Name,
-		PhoneNumber: serviceRes.PhoneNumber,
-		AccessToken: serviceRes.AccessToken,
-	})
+	registerStaffResponse := model.RegisterStaffResponse{
+		Message: "User registered successfully",
+		Data: model.StaffWithToken{
+			UserId:      serviceRes.UserId,
+			Name:        serviceRes.Name,
+			PhoneNumber: serviceRes.PhoneNumber,
+			AccessToken: serviceRes.AccessToken,
+		},
+	}
+
+	return ctx.JSON(http.StatusOK, registerStaffResponse)
 }
 
 func validatePhoneNumber(fl validator.FieldLevel) bool {
 	phoneNumber := fl.Field().String()
 	// Regular expression to match the phone number pattern
-	regex := `^\+(?:[0-9]\d{0,2}|[1-9]\d{1,3}-?)\d{1,14}$`
+	regex := `^\+(?:[1-9]\d{0,2}-?[1-9]\d{1,3}-?)\d{1,9}$`
 	return regexp.MustCompile(regex).MatchString(phoneNumber)
 }

@@ -21,11 +21,11 @@ type RegisterStaffRequest struct {
 }
 
 type StaffWithToken struct {
-	UserId      uuid.UUID `json:"userId"`
+	UserId      string    `json:"userId"`
 	Name        string    `json:"name"`
 	PhoneNumber string    `json:"phoneNumber"`
 	Password    string    `json:"-"`
-	CreatedAt   time.Time `json:"createdAt"`
+	CreatedAt   time.Time `json:"-"`
 	AccessToken string    `json:"accessToken"`
 }
 
@@ -35,10 +35,8 @@ type LoginStaffRequest struct {
 }
 
 type RegisterStaffResponse struct {
-	UserId      string `json:"userId"`
-	Name        string `json:"name"`
-	PhoneNumber string `json:"phoneNumber"`
-	AccessToken string `json:"accessToken"`
+	Message string         `json:"message"`
+	Data    StaffWithToken `json:"data"`
 }
 
 func NewUser(phoneNumber, name, password string) *Staff {

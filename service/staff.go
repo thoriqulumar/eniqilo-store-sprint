@@ -59,7 +59,7 @@ func (s *staffSvc) Register(newStaff model.Staff) (model.StaffWithToken, error) 
 
 	serviceResponse := model.
 		StaffWithToken{
-		UserId:      id,
+		UserId:      id.String(),
 		AccessToken: token,
 	}
 
@@ -84,7 +84,7 @@ func (s *staffSvc) Login(loginReq model.LoginStaffRequest) (model.StaffWithToken
 	}
 
 	serviceResponse := model.StaffWithToken{
-		UserId:      user.UserId,
+		UserId:      user.UserId.String(),
 		Name:        user.Name,
 		PhoneNumber: user.PhoneNumber,
 		AccessToken: token,
