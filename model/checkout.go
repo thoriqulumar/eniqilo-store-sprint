@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Customer struct {
 	UserId      string    `json:"userId" db:"userId"`
@@ -44,4 +48,25 @@ type CustomerResponseData struct {
 type ResponseCustomerList struct {
 	Message string                 `json:"message"`
 	Data    []CustomerResponseData `json:"data"`
+}
+
+type Transaction struct {
+	TransactionId  uuid.UUID       `json:"transactionId" db:"transactionId"`
+	CustomerId     uuid.UUID       `json:"customerId" db:"customerId"`
+	ProductDetails []ProductDetail `json:"productDetails" db:"productDetails"`
+	Paid           int             `json:"paid" db:"paid"`
+	Change         int             `json:"change" db:"change"`
+	CreatedAt      time.Time       `json:"createdAt" db:"createdAt"`
+}
+
+type GenericResponse struct {
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+type GetHistoryParam struct {
+	CustomerId *uuid.UUID
+	Limit      int
+	Offset     int
+	CreatedAt  *string
 }

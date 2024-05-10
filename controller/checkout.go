@@ -6,8 +6,10 @@ import (
 	"eniqilo-store/service"
 	cerr "eniqilo-store/utils/error"
 	"net/http"
+	"net/url"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -75,7 +77,15 @@ func (c *CheckoutController) PostCheckout(ctx echo.Context) error {
 		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
-	err = c.service.CheckoutProduct(ctx.Request().Context(), orderRequest.ProductDetails)
+	transaction := model.Transaction{
+		TransactionId:  uuid.New(),
+		CustomerId:     uuid.MustParse(orderRequest.CustomerId),
+		ProductDetails: orderRequest.ProductDetails,
+		Paid:           orderRequest.Paid,
+		Change:         orderRequest.Change,
+	}
+
+	err = c.service.CheckoutProduct(ctx.Request().Context(), transaction)
 	if err != nil {
 		return ctx.JSON(cerr.GetCode(err), model.ErrorMessageOrder{
 			Message:    err.Error(),
@@ -83,7 +93,9 @@ func (c *CheckoutController) PostCheckout(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, "Successfully Checkout")
+	return ctx.JSON(http.StatusOK, model.GenericResponse{
+		Message: "Successfully Checkout",
+	})
 }
 
 func (c *CheckoutController) GetCustomer(ctx echo.Context) error {
@@ -115,4 +127,50 @@ func (c *CheckoutController) GetCustomer(ctx echo.Context) error {
 		Message: "Customer registered successfully",
 		Data:    listCustomer,
 	})
+}
+
+func (c *CheckoutController) GetHistoryTransaction(ctx echo.Context) error {
+	value, err := ctx.FormParams()
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": "params not valid"})
+	}
+
+	// query to service
+	data, err := c.service.GetAllTransaction(ctx.Request().Context(), parseGetHistoryParams(value))
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, model.GenericResponse{
+		Message: "success",
+		Data: data,
+	})
+}
+
+func parseGetHistoryParams(params url.Values) model.GetHistoryParam {
+	var result model.GetHistoryParam
+
+	for key, values := range params {
+		switch key {
+		case "customerId":
+			customerId, err := uuid.Parse(values[0])
+			if err == nil {
+				result.CustomerId = &customerId
+			}
+		case "limit":
+			limit, err := strconv.Atoi(values[0])
+			if err == nil {
+				result.Limit = limit
+			}
+		case "offset":
+			offset, err := strconv.Atoi(values[0])
+			if err == nil {
+				result.Offset = offset
+			}
+		case "createdAt":
+			result.CreatedAt = &values[0]
+		}
+	}
+
+	return result
 }

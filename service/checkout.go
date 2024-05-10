@@ -15,8 +15,9 @@ type CheckoutService interface {
 	CreateNewCustomer(ctx context.Context, data model.CustomerRequest) (customer model.Customer, err error)
 	ValidateUser(ctx context.Context, userId string) (customer model.Customer, err error)
 	ValidateProduct(ctx context.Context, products []model.ProductDetail) (total float32, err error)
-	CheckoutProduct(ctx context.Context, products []model.ProductDetail) (err error)
+	CheckoutProduct(ctx context.Context, transaction model.Transaction) (err error)
 	GetAllCustomer(ctx context.Context, name, phoneNumber string, limit, offset int) (listCustomer []model.CustomerResponseData, err error)
+	GetAllTransaction(ctx context.Context, params model.GetHistoryParam) (listTransaction []model.Transaction, err error)
 }
 
 type checkoutService struct {
@@ -62,11 +63,11 @@ func (s *checkoutService) ValidateProduct(ctx context.Context, products []model.
 		}
 
 		if dataProduct.Stock < product.Quantity {
-			return 0, cerr.New(http.StatusBadRequest, `quantity product id`+product.ProductId+` is not enough`)
+			return 0, cerr.New(http.StatusBadRequest, `quantity product id `+product.ProductId+` is not enough`)
 		}
 
 		if !*dataProduct.IsAvailable {
-			return 0, cerr.New(http.StatusBadRequest, `quantity product id`+product.ProductId+` is not available`)
+			return 0, cerr.New(http.StatusBadRequest, `quantity product id `+product.ProductId+` is not available`)
 		}
 
 		totalPrice += (float32(dataProduct.Price) * float32(product.Quantity))
@@ -75,9 +76,9 @@ func (s *checkoutService) ValidateProduct(ctx context.Context, products []model.
 	return totalPrice, nil
 }
 
-func (s *checkoutService) CheckoutProduct(ctx context.Context, products []model.ProductDetail) (err error) {
-	productIDs := make([]string, 0, len(products))
-	for _, product := range products {
+func (s *checkoutService) CheckoutProduct(ctx context.Context, transaction model.Transaction) (err error) {
+	productIDs := make([]string, 0, len(transaction.ProductDetails))
+	for _, product := range transaction.ProductDetails {
 		if product.ProductId == "" {
 			return cerr.New(http.StatusBadRequest, "productId cannot be empty")
 		}
@@ -90,7 +91,7 @@ func (s *checkoutService) CheckoutProduct(ctx context.Context, products []model.
 	}
 
 	updatedStocks := make(map[string]int)
-	for _, product := range products {
+	for _, product := range transaction.ProductDetails {
 		existingStock, ok := productStocks[product.ProductId]
 		if !ok {
 			// Handle unexpected missing product (shouldn't occur after previous check)
@@ -106,19 +107,10 @@ func (s *checkoutService) CheckoutProduct(ctx context.Context, products []model.
 		}
 	}
 
-	// for _, product := range products {
-	// 	dataProduct, err := s.repo.GetProductById(ctx, product.ProductId)
-	// 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-	// 		return cerr.New(http.StatusNotFound, "productId is not found")
-	// 	}
-
-	// 	currentStock := dataProduct.Stock - product.Quantity
-	// 	err = s.repo.UpdateStockProduct(ctx, currentStock, product.ProductId)
-	// 	if err != nil{
-	// 		return cerr.New(http.StatusInternalServerError, "error when update product" + product.ProductId)
-	// 	}
-
-	// }
+	err = s.repo.CreateTransaction(ctx, transaction)
+	if err != nil {
+		return cerr.New(http.StatusInternalServerError, fmt.Sprintf("error inserting transaction data"))
+	}
 
 	return nil
 }
@@ -131,3 +123,13 @@ func (s *checkoutService) GetAllCustomer(ctx context.Context, name, phoneNumber 
 
 	return dataCustomer, nil
 }
+
+func (s *checkoutService) GetAllTransaction(ctx context.Context, params model.GetHistoryParam) (listTransaction []model.Transaction, err error){
+	listTransaction, err = s.repo.GetHistoryTransaction(ctx, params)
+	if err != nil {
+		return 
+	}
+
+	return listTransaction, nil
+}
+
