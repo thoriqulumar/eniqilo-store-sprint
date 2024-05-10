@@ -3,6 +3,7 @@ package server
 import (
 	"eniqilo-store/config"
 	"eniqilo-store/controller"
+	"eniqilo-store/middleware"
 	"eniqilo-store/repo"
 	"eniqilo-store/service"
 
@@ -16,8 +17,8 @@ func (s *Server) RegisterRoute(cfg *config.Config) {
 
 	registerHealthRoute(mainRoute, s.db)
 	registerStaffRoute(mainRoute, s.db, cfg, s.validator)
-	registerCustomerRoute(mainRoute, s.db)
-	registerProductRoute(mainRoute, s.db)
+	registerCustomerRoute(mainRoute, s.db, cfg)
+	registerProductRoute(mainRoute, s.db, cfg)
 }
 
 func registerHealthRoute(e *echo.Group, db *sqlx.DB) {
@@ -27,11 +28,11 @@ func registerHealthRoute(e *echo.Group, db *sqlx.DB) {
 
 }
 
-func registerCustomerRoute(e *echo.Group, db *sqlx.DB) {
+func registerCustomerRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config) {
 	ctr := controller.NewCheckoutController(service.NewCheckoutService(repo.NewCheckoutRepo(db)))
-	e.POST("/customer/register", ctr.PostCustomer)
-	e.POST("/product/checkout", ctr.PostCheckout)
-	e.GET("/customer", ctr.GetCustomer)
+	e.POST("/customer/register", ctr.PostCustomer, middleware.Authentication(cfg.JWTSecret))
+	e.POST("/product/checkout", ctr.PostCheckout, middleware.Authentication(cfg.JWTSecret))
+	e.GET("/customer", ctr.GetCustomer, middleware.Authentication(cfg.JWTSecret))
 }
 
 func registerStaffRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config, validate *validator.Validate) {
@@ -41,10 +42,10 @@ func registerStaffRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config, validate
 	e.POST("/staff/register", ctr.Register)
 }
 
-func registerProductRoute(e *echo.Group, db *sqlx.DB) {
+func registerProductRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config) {
 	ctr := controller.NewProductController(service.NewProductService(repo.NewProductRepo(db)))
-	e.POST("/product", ctr.PostProduct)
-	e.PUT("/product/:id", ctr.UpdateProduct)
-	e.DELETE("/product/:id", ctr.DeleteProduct)
-	e.GET("/product", ctr.GetProduct)
+	e.POST("/product", ctr.PostProduct, middleware.Authentication(cfg.JWTSecret))
+	e.PUT("/product/:id", ctr.UpdateProduct, middleware.Authentication(cfg.JWTSecret))
+	e.DELETE("/product/:id", ctr.DeleteProduct, middleware.Authentication(cfg.JWTSecret))
+	e.GET("/product", ctr.GetProduct, middleware.Authentication(cfg.JWTSecret))
 }
