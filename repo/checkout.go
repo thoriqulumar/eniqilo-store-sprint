@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"encoding/json"
 	"eniqilo-store/model"
 	"fmt"
 
@@ -18,6 +19,8 @@ type CheckoutRepo interface {
 	UpdateStockProduct(ctx context.Context, currentStock int, productId string) (err error)
 	GetProductStocks(ctx context.Context, productIDs []string) (map[string]int, error)
 	GetAllCustomer(ctx context.Context, name, phoneNumber string, limit, offset int) (customers []model.CustomerResponseData, err error)
+	CreateTransaction(ctx context.Context, transaction model.Transaction) ( err error)
+	GetHistoryTransaction(ctx context.Context, params model.GetHistoryParam) (customers []model.Transaction, err error)
 }
 
 type checkoutRepo struct {
@@ -74,18 +77,20 @@ var (
 func (r *checkoutRepo) GetProductById(ctx context.Context, productId string) (product model.Product, err error) {
 
 	err = r.db.QueryRowxContext(ctx, getProductQuery, productId).StructScan(&product)
-
-	return product, err
+	if err != nil{
+		return
+	}
+	return product, nil
 }
 
 
 var (
-	updateStockProductQuery = `UPDATE FROM "product" SET "stock" = $1 WHERE id = $2;`
+	updateStockProductQuery = `UPDATE "product" SET "stock" = $1 WHERE id = $2;`
 )
 
 func (r *checkoutRepo) UpdateStockProduct(ctx context.Context, currentStock int, productId string) (err error) {
 
-	_, err = r.db.ExecContext(ctx, updateStockProductQuery, productId)
+	_, err = r.db.ExecContext(ctx, updateStockProductQuery, currentStock, productId)
 	if err != nil {
 		return err
 	}
@@ -93,7 +98,7 @@ func (r *checkoutRepo) UpdateStockProduct(ctx context.Context, currentStock int,
 }
 
 var (
-	getProductStocksQuery = `SELECT id, stock FROM product WHERE id = ANY ($1::text[]);`
+	getProductStocksQuery = `SELECT id, stock FROM product WHERE id = ANY ($1);`
 )
 
 func (r *checkoutRepo) GetProductStocks(ctx context.Context, productIDs []string) (map[string]int, error) {
@@ -156,4 +161,68 @@ func (r *checkoutRepo) GetAllCustomer(ctx context.Context, name, phoneNumber str
     }
 
     return listCustomer, nil
+}
+
+var (
+	createTransactionQuery = `INSERT INTO "transaction" ("transactionId", "customerId", "productDetails", "paid", "change", "createdAt") VALUES ($1, $2, $3, $4, $5, NOW());`
+)
+
+func (r *checkoutRepo) CreateTransaction(ctx context.Context, transaction model.Transaction) ( err error) {
+	productDetailsByte, _ := json.Marshal(transaction.ProductDetails)
+    _, err = r.db.ExecContext(ctx, createTransactionQuery, transaction.TransactionId, transaction.CustomerId, productDetailsByte, transaction.Paid, transaction.Change)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+var (
+	getAllHistoryTransactionQuery = `SELECT * FROM "transaction" WHERE 1=1`
+)
+
+func (r *checkoutRepo) GetHistoryTransaction(ctx context.Context, params model.GetHistoryParam) (customers []model.Transaction, err error) {
+	var listTransaction []model.Transaction
+
+	if params.CustomerId != nil {
+        getAllCustomerQuery += fmt.Sprintf(` AND "customerId" = %s`, params.CustomerId)
+    }
+    if params.CreatedAt != nil{
+		if *params.CreatedAt != "desc" && *params.CreatedAt != "asc"{
+			*params.CreatedAt = "desc"
+		}
+        getAllCustomerQuery += fmt.Sprintf(` ORDER BY "createdAt" %s`, *params.CreatedAt)
+    }
+
+	if params.Limit == 0{
+		params.Limit = 10 
+	}
+
+    getAllCustomerQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, params.Limit, params.Offset)
+
+
+    rows, err := r.db.QueryContext(ctx, getAllHistoryTransactionQuery)
+    if err != nil {
+        return nil, err
+    }
+
+	defer rows.Close()
+
+    // Iterate over the rows and scan each row into a struct
+    for rows.Next() {
+        var transaction model.Transaction
+		var productDetailsByte []byte
+        if err := rows.Scan(&transaction.TransactionId, &transaction.CustomerId, &productDetailsByte, &transaction.Paid, &transaction.Change, &transaction.CreatedAt); err != nil {
+            return nil, err
+        }
+
+		json.Unmarshal(productDetailsByte, &transaction.ProductDetails)
+
+        listTransaction = append(listTransaction, transaction)
+    }
+    if err := rows.Err(); err != nil {
+        return nil, err
+    }
+
+    return listTransaction, nil
 }

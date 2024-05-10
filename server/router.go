@@ -33,8 +33,9 @@ func registerHealthRoute(e *echo.Group, db *sqlx.DB) {
 func registerCustomerRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config) {
 	ctr := controller.NewCheckoutController(service.NewCheckoutService(repo.NewCheckoutRepo(db)))
 	e.POST("/customer/register", ctr.PostCustomer, middleware.Authentication(cfg.JWTSecret))
-	e.POST("/product/checkout", ctr.PostCheckout, middleware.Authentication(cfg.JWTSecret))
+	e.POST("/product/checkout", ctr.PostCheckout)
 	e.GET("/customer", ctr.GetCustomer, middleware.Authentication(cfg.JWTSecret))
+	e.GET("/product/checkout/history", ctr.GetHistoryTransaction)
 }
 
 func registerStaffRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config, validate *validator.Validate) {
