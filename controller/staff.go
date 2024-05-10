@@ -36,19 +36,46 @@ func (c *StaffController) Register(ctx echo.Context) error {
 
 	newStaff := model.Staff{
 		Name:        newStaffReq.Name,
-		PhoneNumber: newStaffReq.Name,
+		PhoneNumber: newStaffReq.PhoneNumber,
 		Password:    newStaffReq.Password,
 	}
 
 	serviceRes, err := c.svc.Register(newStaff)
 	if err != nil {
-		return err
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
 	return ctx.JSON(http.StatusCreated, model.RegisterStaffResponse{
-		UserId:      serviceRes.ID,
+		UserId:      serviceRes.UserId.String(),
 		Name:        newStaff.Name,
 		PhoneNumber: newStaff.PhoneNumber,
+		AccessToken: serviceRes.AccessToken,
+	})
+}
+
+func (c *StaffController) Login(ctx echo.Context) error {
+	var loginReq model.LoginStaffRequest
+	if err := ctx.Bind(&loginReq); err != nil {
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
+	}
+
+	if err := c.validate.Struct(&loginReq); err != nil {
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
+	}
+
+	serviceRes, err := c.svc.Login(loginReq)
+	if err != nil {
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
+	}
+
+	return ctx.JSON(http.StatusOK, model.RegisterStaffResponse{
+		UserId:      serviceRes.UserId.String(),
+		Name:        serviceRes.Name,
+		PhoneNumber: serviceRes.PhoneNumber,
 		AccessToken: serviceRes.AccessToken,
 	})
 }

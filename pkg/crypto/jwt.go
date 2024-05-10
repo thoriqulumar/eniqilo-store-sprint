@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"eniqilo-store/config"
 	"eniqilo-store/model"
 	"time"
 
@@ -9,9 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func GenerateToken(id uuid.UUID, phoneNumber, name string) (string, error) {
-	secret := config.GetString("JWT_SECRET")
-
+func GenerateToken(id uuid.UUID, phoneNumber, name, secret string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, model.JWTClaims{
 		Id:          id.String(),
 		PhoneNumber: phoneNumber,
@@ -23,4 +20,27 @@ func GenerateToken(id uuid.UUID, phoneNumber, name string) (string, error) {
 
 	tokenString, err := token.SignedString([]byte(secret))
 	return tokenString, err
+}
+
+func VerifyToken(token, secretKey string) (*model.JWTPayload, error) {
+	claims := &model.JWTClaims{}
+
+	_, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
+		return []byte(secretKey), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if claims.RegisteredClaims.ExpiresAt.Before(time.Now()) {
+		return nil, err
+	}
+
+	payload := &model.JWTPayload{
+		Id:          claims.Id,
+		PhoneNumber: claims.PhoneNumber,
+		Name:        claims.Name,
+	}
+
+	return payload, nil
 }

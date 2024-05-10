@@ -11,7 +11,7 @@ type Staff struct {
 	Name        string    `json:"name" db:"name"`
 	PhoneNumber string    `json:"phoneNumber" db:"phoneNumber"`
 	Password    string    `json:"-" db:"password"`
-	CreatedAt   time.Time `json:"createdAt" db:"createdAt"`
+	CreatedAt   string    `json:"createdAt" db:"createdAt"`
 }
 
 type RegisterStaffRequest struct {
@@ -20,9 +20,18 @@ type RegisterStaffRequest struct {
 	Password    string `json:"password" validate:"required,min=5,max=15"`
 }
 
-type StaffServiceResponse struct {
-	ID          string `json:"id"`
-	AccessToken string `json:"accessToken"`
+type StaffWithToken struct {
+	UserId      uuid.UUID `json:"userId"`
+	Name        string    `json:"name"`
+	PhoneNumber string    `json:"phoneNumber"`
+	Password    string    `json:"-"`
+	CreatedAt   time.Time `json:"createdAt"`
+	AccessToken string    `json:"accessToken"`
+}
+
+type LoginStaffRequest struct {
+	PhoneNumber string `json:"phoneNumber" validate:"required,phone_number"`
+	Password    string `json:"password" validate:"required,min=5,max=15"`
 }
 
 type RegisterStaffResponse struct {

@@ -35,7 +35,7 @@ func (r *staffRepo) GetStaff(phoneNumber string) (*model.Staff, error) {
 func (r *staffRepo) CreateStaff(newStaff model.Staff, hashPassword string) error {
 	var userId string
 
-	query := `INSERT INTO staff ("userId", name, "phoneNumber", password) VALUES ($1, $2, $3, $4) RETURNING "userId"`
+	query := `INSERT INTO staff ("userId", name, "phoneNumber", password, "createdAt") VALUES ($1, $2, $3, $4, NOW()) RETURNING "userId"`
 
 	row := r.db.QueryRowx(query, newStaff.UserId, newStaff.Name, newStaff.PhoneNumber, hashPassword)
 
