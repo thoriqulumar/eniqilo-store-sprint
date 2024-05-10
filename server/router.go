@@ -7,6 +7,8 @@ import (
 	"eniqilo-store/repo"
 	"eniqilo-store/service"
 
+	"eniqilo-store/middleware"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
