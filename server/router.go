@@ -43,6 +43,6 @@ func registerStaffRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config, validate
 
 func registerProductRoute(e *echo.Group, db *sqlx.DB) {
 	ctr := controller.NewProductController(service.NewProductService(repo.NewProductRepo(db)))
-	e.POST("/api/product", ctr.PostProduct)
+	e.POST("/product", ctr.PostProduct)
 	e.DELETE("/product/:id", ctr.DeleteProduct)
 }
