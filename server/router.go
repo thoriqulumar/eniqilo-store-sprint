@@ -16,6 +16,7 @@ func (s *Server) RegisterRoute() {
 	registerHealthRoute(mainRoute, s.db)
 	registerStaffRoute(mainRoute, s.db, s.validator)
 	registerCustomerRoute(mainRoute, s.db)
+	registerProductRoute(mainRoute, s.db)
 }
 
 func registerHealthRoute(e *echo.Group, db *sqlx.DB) {
@@ -35,4 +36,10 @@ func registerCustomerRoute(e *echo.Group, db *sqlx.DB) {
 func registerStaffRoute(e *echo.Group, db *sqlx.DB, validate *validator.Validate) {
 	ctr := controller.NewStaffContoller(service.NewStaffService(repo.NewStaffRepo(db)), validate)
 	e.POST("/staff/register", ctr.Register)
+}
+
+func registerProductRoute(e *echo.Group, db *sqlx.DB) {
+	ctr := controller.NewProductController(service.NewProductService(repo.NewProductRepo(db)))
+	e.POST("/api/product", ctr.PostProduct)
+	e.DELETE("/product/:id", ctr.DeleteProduct)
 }

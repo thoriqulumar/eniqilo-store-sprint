@@ -6,7 +6,7 @@ CREATE TYPE "category" AS ENUM (
 );
 
 CREATE TABLE "product" (
-  "id" integer PRIMARY KEY,
+  "id" uuid PRIMARY KEY,
   "name" varchar,
   "sku" varchar,
   "category" category,
