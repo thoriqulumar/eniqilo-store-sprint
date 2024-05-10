@@ -6,6 +6,8 @@ import (
 	"eniqilo-store/repo"
 	"eniqilo-store/service"
 
+	"eniqilo-store/middleware"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -17,7 +19,7 @@ func (s *Server) RegisterRoute(cfg *config.Config) {
 	registerHealthRoute(mainRoute, s.db)
 	registerStaffRoute(mainRoute, s.db, cfg, s.validator)
 	registerCustomerRoute(mainRoute, s.db)
-	registerProductRoute(mainRoute, s.db)
+	registerProductRoute(mainRoute, s.db, cfg.JWTSecret)
 }
 
 func registerHealthRoute(e *echo.Group, db *sqlx.DB) {
@@ -41,8 +43,8 @@ func registerStaffRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config, validate
 	e.POST("/staff/register", ctr.Register)
 }
 
-func registerProductRoute(e *echo.Group, db *sqlx.DB) {
+func registerProductRoute(e *echo.Group, db *sqlx.DB, secretKey string) {
 	ctr := controller.NewProductController(service.NewProductService(repo.NewProductRepo(db)))
-	e.POST("/api/product", ctr.PostProduct)
-	e.DELETE("/product/:id", ctr.DeleteProduct)
+	e.POST("/api/product", ctr.PostProduct, middleware.Authentication(secretKey))
+	e.DELETE("/product/:id", ctr.DeleteProduct, middleware.Authentication(secretKey))
 }
