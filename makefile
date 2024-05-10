@@ -4,6 +4,10 @@ GIT_REF_COMMIT := $(shell git rev-parse --short=7 HEAD)
 
 VERSION ?= $(GIT_REF_TAG)
 
+.PHONY: lint
+lint: ## lint all source codes
+	@golangci-lint run ./...
+
 .PHONY: run-app
 run-app:
 	@echo "Running the application..."
