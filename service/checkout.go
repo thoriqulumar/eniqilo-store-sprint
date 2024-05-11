@@ -8,6 +8,7 @@ import (
 	cerr "eniqilo-store/utils/error"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 )
 
@@ -21,19 +22,24 @@ type CheckoutService interface {
 }
 
 type checkoutService struct {
-	repo repo.CheckoutRepo
+	repo   repo.CheckoutRepo
+	logger *zap.Logger
 }
 
-func NewCheckoutService(r repo.CheckoutRepo) CheckoutService {
+func NewCheckoutService(r repo.CheckoutRepo, logger *zap.Logger) CheckoutService {
 	return &checkoutService{
-		repo: r,
+		repo:   r,
+		logger: logger,
 	}
 }
 
 func (s *checkoutService) CreateNewCustomer(ctx context.Context, data model.CustomerRequest) (customer model.Customer, err error) {
-	_, err = s.repo.GetCustomerByNumber(ctx, data.PhoneNumber)
+	if data.PhoneNumber == nil {
+		return model.Customer{}, cerr.New(http.StatusBadRequest, "phoneNumber is required")
+	}
+	_, err = s.repo.GetCustomerByNumber(ctx, *data.PhoneNumber)
 	if !errors.Is(err, sql.ErrNoRows) {
-		return model.Customer{}, cerr.New(http.StatusNotFound, "phoneNumber already exists")
+		return model.Customer{}, cerr.New(http.StatusConflict, "phoneNumber already exists")
 	}
 
 	dataCustomer, err := s.repo.CreateCustomer(ctx, data)
@@ -48,21 +54,31 @@ func (s *checkoutService) ValidateUser(ctx context.Context, userId string) (cust
 
 	dataCustomer, err := s.repo.GetCustomerById(ctx, userId)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return model.Customer{}, cerr.New(http.StatusNotFound, "productId is not found")
+		return model.Customer{}, cerr.New(http.StatusNotFound, "customerId is not found")
 	}
 
+	if dataCustomer.UserId == "" {
+		return model.Customer{}, cerr.New(http.StatusNotFound, "customerId is not found")
+	}
 	return dataCustomer, nil
 }
 
 func (s *checkoutService) ValidateProduct(ctx context.Context, products []model.ProductDetail) (total float32, err error) {
 	var totalPrice float32
 	for _, product := range products {
+		if product.ProductId == "" {
+			return totalPrice, cerr.New(http.StatusBadRequest, "productId is required")
+		}
+
 		dataProduct, err := s.repo.GetProductById(ctx, product.ProductId)
-		if err != nil && errors.Is(err, sql.ErrNoRows) {
+		if err != nil {
+			return 0, cerr.New(http.StatusNotFound, err.Error())
+		}
+		if errors.Is(err, sql.ErrNoRows) {
 			return 0, cerr.New(http.StatusNotFound, "productId is not found")
 		}
 
-		if dataProduct.Stock < product.Quantity {
+		if *dataProduct.Stock < product.Quantity {
 			return 0, cerr.New(http.StatusBadRequest, `quantity product id `+product.ProductId+` is not enough`)
 		}
 
@@ -118,18 +134,18 @@ func (s *checkoutService) CheckoutProduct(ctx context.Context, transaction model
 func (s *checkoutService) GetAllCustomer(ctx context.Context, name, phoneNumber string, limit, offset int) (listCustomer []model.CustomerResponseData, err error) {
 	dataCustomer, err := s.repo.GetAllCustomer(ctx, name, phoneNumber, limit, offset)
 	if err != nil {
+		s.logger.Error("failed getAllCustomer", zap.Error(err))
 		return []model.CustomerResponseData{}, cerr.New(http.StatusInternalServerError, "Internal Server Error")
 	}
 
 	return dataCustomer, nil
 }
 
-func (s *checkoutService) GetAllTransaction(ctx context.Context, params model.GetHistoryParam) (listTransaction []model.Transaction, err error){
+func (s *checkoutService) GetAllTransaction(ctx context.Context, params model.GetHistoryParam) (listTransaction []model.Transaction, err error) {
 	listTransaction, err = s.repo.GetHistoryTransaction(ctx, params)
 	if err != nil {
-		return 
+		return
 	}
 
 	return listTransaction, nil
 }
-

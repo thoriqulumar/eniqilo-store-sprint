@@ -16,8 +16,8 @@ type StaffController struct {
 	validate *validator.Validate
 }
 
-func NewStaffContoller(svc service.StaffService, validate *validator.Validate) *StaffController {
-	validate.RegisterValidation("phone_number", validatePhoneNumber)
+func NewStaffController(svc service.StaffService, validate *validator.Validate) *StaffController {
+	_ = validate.RegisterValidation("phone_number", validatePhoneNumber)
 
 	return &StaffController{svc: svc, validate: validate}
 }

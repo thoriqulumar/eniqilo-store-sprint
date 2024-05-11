@@ -4,9 +4,8 @@ import (
 	"context"
 	"eniqilo-store/config"
 	"eniqilo-store/database"
-	logger "eniqilo-store/pkg/log"
+	"eniqilo-store/pkg/log"
 	"eniqilo-store/server"
-	"log"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -20,7 +19,7 @@ func main() {
 		panic(err)
 	}
 
-	logger, err := logger.NewLogger(
+	logger, err := log.NewLogger(
 		zapcore.DebugLevel,
 		"eniqilo_store",
 		"1",
@@ -37,8 +36,8 @@ func main() {
 	defer db.Close()
 	db.SetMaxIdleConns(80)
 
-	s := server.NewServer(db)
+	s := server.NewServer(db, logger)
 	s.RegisterRoute(cfg)
 
-	log.Fatal(s.Run())
+	logger.Fatal("failed run app", zap.Error(s.Run()))
 }

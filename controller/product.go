@@ -44,6 +44,26 @@ func (ctr *ProductController) GetProduct(c echo.Context) error {
 	})
 }
 
+func (ctr *ProductController) GetProductCustomer(c echo.Context) error {
+	// get query param
+	value, err := c.FormParams()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "params not valid"})
+	}
+
+	// query to service
+	data, err := ctr.ProductService.GetProduct(c.Request().Context(), parseGetProductParams(value))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	// compose response
+	return c.JSON(http.StatusOK, model.GetProductResponse{
+		Message: "success",
+		Data:    data,
+	})
+}
+
 func (ctr *ProductController) PostProduct(c echo.Context) error {
 	var product model.Product
 	if err := c.Bind(&product); err != nil {
@@ -148,7 +168,13 @@ func parseGetProductParams(params url.Values) model.GetProductParam {
 			if err == nil {
 				result.InStock = &inStock
 			}
+		// param sorting in set
+		case "price":
+			result.Sort.Price = &values[0]
+		case "createdAt":
+			result.Sort.CreatedAt = &values[0]
 		}
+
 	}
 
 	return result

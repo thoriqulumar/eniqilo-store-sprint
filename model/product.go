@@ -25,6 +25,12 @@ type GetProductParam struct {
 	Category    *Category
 	SKU         *string
 	InStock     *bool
+	Sort        ProductSorting
+}
+
+type ProductSorting struct {
+	Price     *string
+	CreatedAt *string
 }
 
 type GetProductResponse struct {
@@ -48,7 +54,7 @@ type Product struct {
 	Name        string    `json:"name" db:"name"`
 	SKU         string    `json:"sku" db:"sku"`
 	Category    string    `json:"category" db:"category"`
-	Stock       int       `json:"stock" db:"stock"`
+	Stock       *int      `json:"stock" db:"stock"`
 	Price       int       `json:"price" db:"price"`
 	ImageURL    string    `json:"imageUrl" db:"imageUrl"`
 	Notes       string    `json:"notes" db:"notes"`

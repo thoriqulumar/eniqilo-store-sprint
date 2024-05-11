@@ -14,8 +14,8 @@ type Customer struct {
 }
 
 type CustomerRequest struct {
-	PhoneNumber string `json:"phoneNumber"`
-	Name        string `json:"name"`
+	PhoneNumber *string `json:"phoneNumber" validate:"required,phone_number"`
+	Name        *string `json:"name" validate:"required,min=5,max=50"`
 }
 
 type CustomerResponse struct {
@@ -34,10 +34,10 @@ type ProductDetail struct {
 }
 
 type OrderRequest struct {
-	CustomerId     string          `json:"customerId"`
+	CustomerId     *string         `json:"customerId" validate:"required"`
 	ProductDetails []ProductDetail `json:"productDetails"`
-	Paid           int             `json:"paid"`
-	Change         int             `json:"change"`
+	Paid           *int            `json:"paid" validate:"required"`
+	Change         *int            `json:"change" validate:"required"`
 }
 
 type CustomerResponseData struct {
