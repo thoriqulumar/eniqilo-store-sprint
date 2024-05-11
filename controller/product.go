@@ -51,6 +51,7 @@ func (ctr *ProductController) GetProductCustomer(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "params not valid"})
 	}
 
+	value.Add("isAvailable", "true")
 	// query to service
 	data, err := ctr.ProductService.GetProduct(c.Request().Context(), parseGetProductParams(value))
 	if err != nil {

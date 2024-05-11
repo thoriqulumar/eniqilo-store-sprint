@@ -82,9 +82,9 @@ func (s *checkoutService) ValidateProduct(ctx context.Context, products []model.
 			return 0, cerr.New(http.StatusBadRequest, `quantity product id `+product.ProductId+` is not enough`)
 		}
 
-		//if !*dataProduct.IsAvailable {
-		//	return 0, cerr.New(http.StatusBadRequest, `quantity product id `+product.ProductId+` is not available`)
-		//}
+		if !*dataProduct.IsAvailable {
+			return 0, cerr.New(http.StatusBadRequest, `quantity product id `+product.ProductId+` is not available`)
+		}
 
 		totalPrice += (float32(dataProduct.Price) * float32(product.Quantity))
 	}
