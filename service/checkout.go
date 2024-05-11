@@ -82,9 +82,9 @@ func (s *checkoutService) ValidateProduct(ctx context.Context, products []model.
 			return 0, cerr.New(http.StatusBadRequest, `quantity product id `+product.ProductId+` is not enough`)
 		}
 
-		if !*dataProduct.IsAvailable {
-			return 0, cerr.New(http.StatusBadRequest, `quantity product id `+product.ProductId+` is not available`)
-		}
+		//if !*dataProduct.IsAvailable {
+		//	return 0, cerr.New(http.StatusBadRequest, `quantity product id `+product.ProductId+` is not available`)
+		//}
 
 		totalPrice += (float32(dataProduct.Price) * float32(product.Quantity))
 	}
@@ -93,6 +93,20 @@ func (s *checkoutService) ValidateProduct(ctx context.Context, products []model.
 }
 
 func (s *checkoutService) CheckoutProduct(ctx context.Context, transaction model.Transaction) (err error) {
+	// new tx
+	tx, err := s.repo.NewTx()
+	if err != nil {
+		s.logger.Error("CheckoutProduct:%v", zap.Error(err))
+		return cerr.New(http.StatusInternalServerError, "Internal Server Error")
+	}
+	defer func() {
+		if err != nil {
+			err = tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+
 	productIDs := make([]string, 0, len(transaction.ProductDetails))
 	for _, product := range transaction.ProductDetails {
 		if product.ProductId == "" {
@@ -117,13 +131,13 @@ func (s *checkoutService) CheckoutProduct(ctx context.Context, transaction model
 	}
 
 	for productId, stock := range updatedStocks {
-		err = s.repo.UpdateStockProduct(ctx, stock, productId)
+		err = s.repo.UpdateStockProduct(ctx, tx, stock, productId)
 		if err != nil {
 			return cerr.New(http.StatusInternalServerError, fmt.Sprintf("error updating stock for product %s: %s", productId, err.Error()))
 		}
 	}
 
-	err = s.repo.CreateTransaction(ctx, transaction)
+	err = s.repo.CreateTransaction(ctx, tx, transaction)
 	if err != nil {
 		return cerr.New(http.StatusInternalServerError, fmt.Sprintf("error inserting transaction data"))
 	}

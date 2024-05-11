@@ -12,14 +12,15 @@ import (
 )
 
 type CheckoutRepo interface {
+	NewTx() (*sqlx.Tx, error)
 	CreateCustomer(ctx context.Context, data model.CustomerRequest) (customer model.Customer, err error)
 	GetCustomerById(ctx context.Context, userId string) (customer model.Customer, err error)
 	GetCustomerByNumber(ctx context.Context, phoneNumber string) (customer model.Customer, err error)
 	GetProductById(ctx context.Context, productId string) (product model.Product, err error)
-	UpdateStockProduct(ctx context.Context, currentStock int, productId string) (err error)
+	UpdateStockProduct(ctx context.Context, tx *sqlx.Tx, currentStock int, productId string) (err error)
 	GetProductStocks(ctx context.Context, productIDs []string) (map[string]int, error)
 	GetAllCustomer(ctx context.Context, name, phoneNumber string, limit, offset int) (customers []model.CustomerResponseData, err error)
-	CreateTransaction(ctx context.Context, transaction model.Transaction) (err error)
+	CreateTransaction(ctx context.Context, tx *sqlx.Tx, transaction model.Transaction) (err error)
 	GetHistoryTransaction(ctx context.Context, params model.GetHistoryParam) (customers []model.Transaction, err error)
 }
 
@@ -31,6 +32,10 @@ func NewCheckoutRepo(db *sqlx.DB) CheckoutRepo {
 	return &checkoutRepo{
 		db: db,
 	}
+}
+
+func (r *checkoutRepo) NewTx() (*sqlx.Tx, error) {
+	return r.db.Beginx()
 }
 
 var (
@@ -85,9 +90,8 @@ var (
 	updateStockProductQuery = `UPDATE "product" SET "stock" = $1 WHERE id = $2;`
 )
 
-func (r *checkoutRepo) UpdateStockProduct(ctx context.Context, currentStock int, productId string) (err error) {
-
-	_, err = r.db.ExecContext(ctx, updateStockProductQuery, currentStock, productId)
+func (r *checkoutRepo) UpdateStockProduct(ctx context.Context, tx *sqlx.Tx, currentStock int, productId string) (err error) {
+	_, err = tx.ExecContext(ctx, updateStockProductQuery, currentStock, productId)
 	if err != nil {
 		return err
 	}
@@ -155,9 +159,9 @@ var (
 	createTransactionQuery = `INSERT INTO "transaction" ("transactionId", "customerId", "productDetails", "paid", "change", "createdAt") VALUES ($1, $2, $3, $4, $5, NOW());`
 )
 
-func (r *checkoutRepo) CreateTransaction(ctx context.Context, transaction model.Transaction) (err error) {
+func (r *checkoutRepo) CreateTransaction(ctx context.Context, tx *sqlx.Tx, transaction model.Transaction) (err error) {
 	productDetailsByte, _ := json.Marshal(transaction.ProductDetails)
-	_, err = r.db.ExecContext(ctx, createTransactionQuery, transaction.TransactionId, transaction.CustomerId, productDetailsByte, transaction.Paid, transaction.Change)
+	_, err = tx.ExecContext(ctx, createTransactionQuery, transaction.TransactionId, transaction.CustomerId, productDetailsByte, transaction.Paid, transaction.Change)
 	if err != nil {
 		return err
 	}
@@ -177,10 +181,12 @@ func (r *checkoutRepo) GetHistoryTransaction(ctx context.Context, params model.G
 			*params.CreatedAt = "desc"
 		}
 		getAllHistoryTransactionQuery += fmt.Sprintf(` ORDER BY "createdAt" %s`, *params.CreatedAt)
+	} else {
+		getAllHistoryTransactionQuery += ` ORDER BY "createdAt" DESC`
 	}
 
 	if params.Limit == 0 {
-		params.Limit = 10
+		params.Limit = 5 // default limit
 	}
 
 	getAllHistoryTransactionQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, params.Limit, params.Offset)

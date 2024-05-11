@@ -90,7 +90,7 @@ func (ctr *ProductController) UpdateProduct(c echo.Context) error {
 	idParam := c.Param("id") // Assuming you're using Echo framework and the ID is passed as a URL parameter
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid product ID format"})
+		return c.JSON(http.StatusNotFound, echo.Map{"error": "Invalid product ID format"})
 	}
 
 	var product model.Product
@@ -102,7 +102,7 @@ func (ctr *ProductController) UpdateProduct(c echo.Context) error {
 	// Call the service to create a new product
 	up, err := ctr.ProductService.UpdateProduct(c.Request().Context(), product)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+		return c.JSON(cerr.GetCode(err), echo.Map{"error": err.Error()})
 	}
 	// Prepare the response with the structured format
 	response := model.UpdateProductResponse{
@@ -116,7 +116,7 @@ func (ctr *ProductController) DeleteProduct(c echo.Context) error {
 	idParam := c.Param("id") // Assuming you're using Echo framework and the ID is passed as a URL parameter
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid product ID format"})
+		return c.JSON(http.StatusNotFound, echo.Map{"error": "Invalid product ID format"})
 	}
 
 	err = ctr.ProductService.DeleteProduct(c.Request().Context(), id)
