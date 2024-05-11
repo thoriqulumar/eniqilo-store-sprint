@@ -5,6 +5,7 @@ import (
 	"eniqilo-store/pkg/customErr"
 	"eniqilo-store/service"
 	cerr "eniqilo-store/utils/error"
+	"github.com/go-playground/validator/v10"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -14,12 +15,16 @@ import (
 )
 
 type CheckoutController struct {
-	service service.CheckoutService
+	service  service.CheckoutService
+	validate *validator.Validate
 }
 
-func NewCheckoutController(service service.CheckoutService) *CheckoutController {
+func NewCheckoutController(service service.CheckoutService, validate *validator.Validate) *CheckoutController {
+	_ = validate.RegisterValidation("phone_number", validatePhoneNumber)
+
 	return &CheckoutController{
-		service: service,
+		service:  service,
+		validate: validate,
 	}
 }
 
@@ -30,11 +35,15 @@ func (c *CheckoutController) PostCustomer(ctx echo.Context) error {
 		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
+	if err := c.validate.Struct(&customerRequest); err != nil {
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
+	}
+
 	// Call the service to create a new customer
 	newCustomer, err := c.service.CreateNewCustomer(ctx.Request().Context(), customerRequest)
 	if err != nil {
-		resErr := customErr.NewNotFoundError(err.Error())
-		return ctx.JSON(resErr.StatusCode, resErr)
+		return ctx.JSON(cerr.GetCode(err), model.GenericResponse{Message: err.Error()})
 	}
 
 	return ctx.JSON(http.StatusCreated, model.CustomerResponse{
@@ -50,10 +59,16 @@ func (c *CheckoutController) PostCheckout(ctx echo.Context) error {
 		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
-	//validate user
-	_, err := c.service.ValidateUser(ctx.Request().Context(), orderRequest.CustomerId)
+	err := c.validate.Struct(&orderRequest)
 	if err != nil {
-		resErr := customErr.NewNotFoundError(err.Error())
+		resErr := customErr.NewBadRequestError(err.Error())
+		return ctx.JSON(resErr.StatusCode, resErr)
+	}
+
+	//validate user
+	_, err = c.service.ValidateUser(ctx.Request().Context(), *orderRequest.CustomerId)
+	if err != nil {
+		resErr := customErr.NewBadRequestError(err.Error())
 		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
@@ -66,23 +81,23 @@ func (c *CheckoutController) PostCheckout(ctx echo.Context) error {
 		})
 	}
 
-	if totalPrice > float32(orderRequest.Paid) {
+	if totalPrice > float32(*orderRequest.Paid) {
 		resErr := customErr.NewBadRequestError("Paid amount is not enough based on all bought products")
 		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
-	change := float32(orderRequest.Paid) - float32(totalPrice)
-	if float32(orderRequest.Change) != change {
+	change := float32(*orderRequest.Paid) - float32(totalPrice)
+	if float32(*orderRequest.Change) != change {
 		resErr := customErr.NewBadRequestError("Change is not correct based on all bought products and what is paid")
 		return ctx.JSON(resErr.StatusCode, resErr)
 	}
 
 	transaction := model.Transaction{
 		TransactionId:  uuid.New(),
-		CustomerId:     uuid.MustParse(orderRequest.CustomerId),
+		CustomerId:     uuid.MustParse(*orderRequest.CustomerId),
 		ProductDetails: orderRequest.ProductDetails,
-		Paid:           orderRequest.Paid,
-		Change:         orderRequest.Change,
+		Paid:           *orderRequest.Paid,
+		Change:         *orderRequest.Change,
 	}
 
 	err = c.service.CheckoutProduct(ctx.Request().Context(), transaction)
@@ -143,7 +158,7 @@ func (c *CheckoutController) GetHistoryTransaction(ctx echo.Context) error {
 
 	return ctx.JSON(http.StatusOK, model.GenericResponse{
 		Message: "success",
-		Data: data,
+		Data:    data,
 	})
 }
 

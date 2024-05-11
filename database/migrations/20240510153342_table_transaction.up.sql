@@ -4,5 +4,5 @@ CREATE TABLE "transaction" (
   "productDetails" JSONB,
   "paid" int,
   "change" int,
-  "createdAt" date
+  "createdAt" timestamp
 );

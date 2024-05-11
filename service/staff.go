@@ -68,7 +68,6 @@ func (s *staffSvc) Register(newStaff model.Staff) (model.StaffWithToken, error) 
 
 func (s *staffSvc) Login(loginReq model.LoginStaffRequest) (model.StaffWithToken, error) {
 	user, err := s.repo.GetStaff(loginReq.PhoneNumber)
-
 	if err != nil && err != sql.ErrNoRows {
 		return model.StaffWithToken{}, customErr.NewInternalServerError("Internal server error")
 	}

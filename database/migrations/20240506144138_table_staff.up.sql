@@ -3,5 +3,5 @@ CREATE TABLE "staff" (
   "name" varchar,
   "phoneNumber" varchar,
   "password" varchar,
-  "createdAt" date
+  "createdAt" timestamp
 );

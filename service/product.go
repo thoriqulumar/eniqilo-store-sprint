@@ -7,17 +7,14 @@ import (
 	"eniqilo-store/repo"
 	cerr "eniqilo-store/utils/error"
 	"errors"
-	"fmt"
-	"net/http"
-	"net/url"
-	"strings"
-
 	"github.com/google/uuid"
+	"net/http"
 )
 
 // ProductService handles business logic related to products.
 type ProductService interface {
 	GetProduct(ctx context.Context, param model.GetProductParam) ([]model.Product, error)
+	GetProductCustomer(ctx context.Context, param model.GetProductParam) ([]model.Product, error)
 	CreateProduct(ctx context.Context, data model.Product) (model.Product, error)
 	UpdateProduct(ctx context.Context, data model.Product) (model.Product, error)
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
@@ -74,11 +71,11 @@ func validateCreateProduct(prod model.Product) error {
 	}
 
 	// Category validation
-	validCategories := map[model.Category]bool{
-		model.Clothing:    true,
-		model.Accessories: true,
-		model.Footwear:    true,
-		model.Beverages:   true,
+	validCategories := map[model.Category]struct{}{
+		model.Clothing:    {},
+		model.Accessories: {},
+		model.Footwear:    {},
+		model.Beverages:   {},
 	}
 	if _, ok := validCategories[model.Category(prod.Category)]; !ok {
 		return errors.New("invalid category")
@@ -87,8 +84,9 @@ func validateCreateProduct(prod model.Product) error {
 	// Image URL validation
 	// You can use regex or a library like net/url to validate URL format
 	// For simplicity, let's just check if it's not empty
-	if _, err := url.ParseRequestURI(prod.ImageURL); err != nil {
-		return errors.New("image URL must be a valid URL")
+	ok := isValidURL(prod.ImageURL)
+	if !ok {
+		return errors.New("url is invalid")
 	}
 
 	// Notes validation
@@ -102,7 +100,10 @@ func validateCreateProduct(prod model.Product) error {
 	}
 
 	// Stock validation
-	if prod.Stock < 0 || prod.Stock > 100000 {
+	if prod.Stock == nil {
+		return errors.New("stock must not be nil")
+	}
+	if *prod.Stock < 0 || *prod.Stock > 100000 {
 		return errors.New("stock must be between 0 and 100,000")
 	}
 
@@ -125,54 +126,17 @@ func (s *productService) DeleteProduct(ctx context.Context, id uuid.UUID) error 
 	return s.repo.DeleteProduct(ctx, id)
 }
 
-func (s *productService) GetProduct(ctx context.Context, param model.GetProductParam) ([]model.Product, error) {
+func (s *productService) GetProduct(ctx context.Context, param model.GetProductParam) (product []model.Product, err error) {
 	// generate filter query from param
 	// do request
-	return s.repo.GetProduct(ctx, generateSQLFilter(param))
+	product, err = s.repo.GetProduct(ctx, param)
+	if product == nil || err != nil {
+		product = []model.Product{}
+	}
+	return product, err
 }
 
-func generateSQLFilter(params model.GetProductParam) string {
-	var conditions []string
-
-	// Add conditions based on the fields provided
-	if params.ID != nil {
-		conditions = append(conditions, fmt.Sprintf(`"id" = '%s'`, *params.ID))
-	}
-
-	// TODO: explore searchable index
-	if params.Name != nil {
-		name := *params.Name
-		// Append wildcard symbols to allow partial matching
-		name = "%" + strings.ToLower(name) + "%"
-		conditions = append(conditions, fmt.Sprintf(`lower("name") LIKE '%s'`, name))
-	}
-	if params.SKU != nil {
-		conditions = append(conditions, fmt.Sprintf(`"sku" = '%s'`, *params.SKU))
-	}
-	if params.IsAvailable != nil {
-		conditions = append(conditions, fmt.Sprintf(`"isAvailable" = %t`, *params.IsAvailable))
-	}
-	if params.Category != nil {
-		conditions = append(conditions, fmt.Sprintf(`"category" = '%s'`, *params.Category))
-	}
-	if params.InStock != nil {
-		conditions = append(conditions, fmt.Sprintf(`"stock" > 0`))
-	}
-
-	// Combine conditions with AND
-	filter := strings.Join(conditions, " AND ")
-
-	// Add additional clauses such as LIMIT and OFFSET
-	if params.Limit != nil {
-		filter += fmt.Sprintf(" LIMIT %d", *params.Limit)
-	} else {
-		filter += " LIMIT 5"
-	}
-	if params.Offset != nil {
-		filter += fmt.Sprintf(" OFFSET %d", *params.Offset)
-	} else {
-		filter += " OFFSET 0"
-	}
-
-	return filter
+func (s *productService) GetProductCustomer(ctx context.Context, param model.GetProductParam) ([]model.Product, error) {
+	*param.IsAvailable = true
+	return s.repo.GetProduct(ctx, param)
 }

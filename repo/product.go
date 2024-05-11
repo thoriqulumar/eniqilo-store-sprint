@@ -5,6 +5,7 @@ import (
 	"eniqilo-store/model"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,7 +15,7 @@ import (
 
 type ProductRepo interface {
 	GetProductByID(ctx context.Context, id uuid.UUID) (model.Product, error)
-	GetProduct(ctx context.Context, filterQuery string) ([]model.Product, error)
+	GetProduct(ctx context.Context, param model.GetProductParam) ([]model.Product, error)
 	CreateProduct(ctx context.Context, data model.Product) (model.Product, error)
 	UpdateProduct(ctx context.Context, data model.Product) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
@@ -97,14 +98,12 @@ func (r *productRepo) GetProductByID(ctx context.Context, id uuid.UUID) (model.P
 	return product, nil
 }
 
-func (r *productRepo) GetProduct(ctx context.Context, filterQuery string) ([]model.Product, error) {
-	var products []model.Product
-	query := `SELECT * FROM product WHERE ` + filterQuery
+func (r *productRepo) GetProduct(ctx context.Context, param model.GetProductParam) (products []model.Product, err error) {
+	query := `SELECT * FROM product WHERE true ` + generateGetProductSQLFilter(param)
 	rows, err := r.db.QueryxContext(ctx, query)
 	if err != nil {
 		return products, err
 	}
-
 	defer rows.Close()
 	for rows.Next() {
 		var product model.Product
@@ -114,4 +113,74 @@ func (r *productRepo) GetProduct(ctx context.Context, filterQuery string) ([]mod
 		products = append(products, product)
 	}
 	return products, nil
+}
+
+func generateGetProductSQLFilter(params model.GetProductParam) string {
+	var conditions []string
+
+	// Add conditions based on the fields provided
+	if params.ID != nil {
+		conditions = append(conditions, fmt.Sprintf(`"id" = '%s'`, *params.ID))
+	}
+
+	// TODO: explore searchable index
+	if params.Name != nil {
+		name := *params.Name
+		// Append wildcard symbols to allow partial matching
+		name = "%" + strings.ToLower(name) + "%"
+		conditions = append(conditions, fmt.Sprintf(`lower("name") LIKE '%s'`, name))
+	}
+	if params.SKU != nil {
+		conditions = append(conditions, fmt.Sprintf(`"sku" = '%s'`, *params.SKU))
+	}
+	if params.IsAvailable != nil {
+		conditions = append(conditions, fmt.Sprintf(`"isAvailable" = %t`, *params.IsAvailable))
+	}
+	if params.Category != nil {
+		conditions = append(conditions, fmt.Sprintf(`"category" = '%s'`, *params.Category))
+	}
+	if params.InStock != nil {
+		conditions = append(conditions, fmt.Sprintf(`"stock" > 0`))
+	}
+
+	// Combine conditions with AND
+	filter := strings.Join(conditions, " AND ")
+	if filter != "" {
+		// add and clause in the front
+		filter = "AND " + filter
+	}
+
+	orderByClause := ""
+	if params.Sort.Price != nil {
+		orderByClause = fmt.Sprintf(" ORDER BY price %s", *params.Sort.Price)
+	}
+
+	// set default sort
+	if params.Sort.CreatedAt == nil {
+		defaultSort := "desc"
+		params.Sort.CreatedAt = &defaultSort
+	}
+	if orderByClause != "" {
+		orderByClause += fmt.Sprintf(`, "createdAt" %s`, *params.Sort.CreatedAt)
+	} else {
+		orderByClause = fmt.Sprintf(` ORDER BY "createdAt" %s`, *params.Sort.CreatedAt)
+	}
+
+	if orderByClause != "" {
+		filter += " " + orderByClause
+	}
+
+	// Add additional clauses such as LIMIT and OFFSET
+	if params.Limit != nil {
+		filter += fmt.Sprintf(" LIMIT %d", *params.Limit)
+	} else {
+		filter += " LIMIT 5"
+	}
+	if params.Offset != nil {
+		filter += fmt.Sprintf(" OFFSET %d", *params.Offset)
+	} else {
+		filter += " OFFSET 0"
+	}
+
+	return filter
 }

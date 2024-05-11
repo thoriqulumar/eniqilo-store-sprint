@@ -16,5 +16,5 @@ CREATE TABLE "product" (
   "notes" varchar,
   "isAvailable" boolean,
   "location" varchar,
-  "createdAt" date
+  "createdAt" timestamp
 );

@@ -6,12 +6,10 @@ import (
 	"eniqilo-store/middleware"
 	"eniqilo-store/repo"
 	"eniqilo-store/service"
-
-	"eniqilo-store/middleware"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 )
 
 func (s *Server) RegisterRoute(cfg *config.Config) {
@@ -19,7 +17,7 @@ func (s *Server) RegisterRoute(cfg *config.Config) {
 
 	registerHealthRoute(mainRoute, s.db)
 	registerStaffRoute(mainRoute, s.db, cfg, s.validator)
-	registerCustomerRoute(mainRoute, s.db, cfg)
+	registerCustomerRoute(mainRoute, s.db, cfg, s.validator, s.logger)
 	registerProductRoute(mainRoute, s.db, cfg)
 }
 
@@ -30,16 +28,16 @@ func registerHealthRoute(e *echo.Group, db *sqlx.DB) {
 
 }
 
-func registerCustomerRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config) {
-	ctr := controller.NewCheckoutController(service.NewCheckoutService(repo.NewCheckoutRepo(db)))
+func registerCustomerRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config, validate *validator.Validate, logger *zap.Logger) {
+	ctr := controller.NewCheckoutController(service.NewCheckoutService(repo.NewCheckoutRepo(db), logger), validate)
 	e.POST("/customer/register", ctr.PostCustomer, middleware.Authentication(cfg.JWTSecret))
-	e.POST("/product/checkout", ctr.PostCheckout)
+	e.POST("/product/checkout", ctr.PostCheckout, middleware.Authentication(cfg.JWTSecret))
 	e.GET("/customer", ctr.GetCustomer, middleware.Authentication(cfg.JWTSecret))
-	e.GET("/product/checkout/history", ctr.GetHistoryTransaction)
+	e.GET("/product/checkout/history", ctr.GetHistoryTransaction, middleware.Authentication(cfg.JWTSecret))
 }
 
 func registerStaffRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config, validate *validator.Validate) {
-	ctr := controller.NewStaffContoller(service.NewStaffService(cfg, repo.NewStaffRepo(db)), validate)
+	ctr := controller.NewStaffController(service.NewStaffService(cfg, repo.NewStaffRepo(db)), validate)
 
 	e.POST("/staff/login", ctr.Login)
 	e.POST("/staff/register", ctr.Register)
@@ -51,4 +49,5 @@ func registerProductRoute(e *echo.Group, db *sqlx.DB, cfg *config.Config) {
 	e.PUT("/product/:id", ctr.UpdateProduct, middleware.Authentication(cfg.JWTSecret))
 	e.DELETE("/product/:id", ctr.DeleteProduct, middleware.Authentication(cfg.JWTSecret))
 	e.GET("/product", ctr.GetProduct, middleware.Authentication(cfg.JWTSecret))
+	e.GET("/product/customer", ctr.GetProductCustomer)
 }
