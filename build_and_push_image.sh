@@ -9,7 +9,7 @@ PASSWORD=$2
 
 docker build -t main_thorumr:latest .
 
-docker login -u $USERNAME -p $PASSWORD docker.io
+echo "$PASSWORD" | docker login -u $USERNAME --password-stdin docker.io
 
 docker tag main_thorumr docker.io/$USERNAME/main_thorumr:latest
 

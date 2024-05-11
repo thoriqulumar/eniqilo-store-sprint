@@ -34,7 +34,6 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
-	db.SetMaxIdleConns(80)
 
 	s := server.NewServer(db, logger)
 	s.RegisterRoute(cfg)
